@@ -13,12 +13,19 @@ export default function Dashboard() {
 
   const { data: resumes, isLoading: resumesLoading } = useQuery({
     queryKey: ['resumes'],
-    queryFn: () => resumeAPI.getAll().then((r) => r.data),
+    queryFn: async () => {
+      const response = await resumeAPI.getAll();
+      // Handle different response structures
+      return response.data?.data?.resumes || response.data?.data || response.data || [];
+    },
   });
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: ['interview-sessions'],
-    queryFn: () => interviewAPI.getSessions().then((r) => r.data),
+    queryFn: async () => {
+      const response = await interviewAPI.getSessions();
+      return response.data?.data?.sessions || response.data?.data || response.data || [];
+    },
   });
 
   const resumeList = resumes?.resumes || resumes || [];

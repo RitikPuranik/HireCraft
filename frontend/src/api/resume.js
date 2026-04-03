@@ -2,7 +2,7 @@ import client from './client';
 
 export const resumeAPI = {
   upload: (formData) =>
-    client.post('/resumes/upload', formData, {
+    client.post('/resumes', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   getAll: () => client.get('/resumes'),
