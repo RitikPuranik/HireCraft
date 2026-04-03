@@ -1,13 +1,13 @@
 import client from './client';
 
 export const interviewAPI = {
-  startSession: (data) => client.post('/interview/start', data),
-  getSessions: () => client.get('/interview/sessions'),
-  getSession: (id) => client.get(`/interview/sessions/${id}`),
+  startSession: (data) => client.post('/interviews/start', data),
+  getSessions: () => client.get('/interviews/sessions'),
+  getSession: (id) => client.get(`/interviews/sessions/${id}`),
   submitAnswer: (sessionId, data) =>
-    client.post(`/interview/sessions/${sessionId}/answer`, data),
+    client.post(`/interviews/sessions/${sessionId}/answer`, data),
   endSession: (sessionId) =>
-    client.post(`/interview/sessions/${sessionId}/end`),
+    client.post(`/interviews/sessions/${sessionId}/end`),
   getReport: (sessionId) =>
-    client.get(`/interview/sessions/${sessionId}/report`),
+    client.get(`/interviews/sessions/${sessionId}/report`),
 };
