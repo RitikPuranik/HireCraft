@@ -5,11 +5,11 @@
  */
 export const PLANS = {
   free: {
-    name:        'Free',
-    price:       0,
-    currency:    'INR',
+    name:     'Free',
+    price:    0,
+    currency: 'INR',
     limits: {
-      resumes:      1,    // max resumes allowed to exist at once
+      resumes:      1,    // max resumes allowed to exist at once (not a daily counter)
       atsChecks:    3,    // per day
       interviews:   2,    // per day
       jobMatches:   1,    // per day
@@ -27,12 +27,13 @@ export const PLANS = {
   },
 
   pro: {
-    name:        'Pro',
-    price:       999,    // INR per month (₹999 ≈ $12)
-    currency:    'INR',
-    razorpayPlanId: process.env.RAZORPAY_PLAN_ID,
+    name:     'Pro',
+    price:    999,     // INR per month (₹999 ≈ $12)
+    currency: 'INR',
+    // BUG FIX: removed dead RAZORPAY_PLAN_ID reference — this backend uses
+    // one-time order verification, not Razorpay subscription plans.
     limits: {
-      resumes:      -1,   // unlimited
+      resumes:      -1,  // unlimited
       atsChecks:    -1,
       interviews:   -1,
       jobMatches:   -1,
@@ -55,10 +56,10 @@ export const PLANS = {
 
 // Feature keys that map to usage counters
 export const USAGE_KEYS = {
-  CREATE_RESUME:    'resumes',
-  ATS_CHECK:        'atsChecks',
-  START_INTERVIEW:  'interviews',
-  JOB_MATCH:        'jobMatches',
-  COVER_LETTER:     'coverLetters',
-  PDF_DOWNLOAD:     'pdfDownloads',
+  CREATE_RESUME:   'resumes',
+  ATS_CHECK:       'atsChecks',
+  START_INTERVIEW: 'interviews',
+  JOB_MATCH:       'jobMatches',
+  COVER_LETTER:    'coverLetters',
+  PDF_DOWNLOAD:    'pdfDownloads',
 }
