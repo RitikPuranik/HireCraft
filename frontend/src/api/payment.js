@@ -1,8 +1,11 @@
 import client from './client';
 
 export const paymentAPI = {
-  getPlans: () => client.get('/payment/plans'),
-  createOrder: (planId) => client.post('/payment/create-order', { planId }),
-  verifyPayment: (data) => client.post('/payment/verify', data),
-  getSubscription: () => client.get('/payment/subscription'),
+  getPlans: () => client.get('/subscription/plans'),
+  
+  createOrder: () => client.post('/subscription/create-order'), // Remove planId parameter
+  
+  verifyPayment: (data) => client.post('/subscription/verify', data),
+  
+  getSubscription: () => client.get('/subscription/me'), // Change from /subscription to /me
 };

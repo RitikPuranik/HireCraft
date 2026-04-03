@@ -1,15 +1,21 @@
 import dotenv from 'dotenv'
-dotenv.config()
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-// ── Validate required environment variables at startup ───────────────────────
-const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'GEMINI_API_KEY']
-const missing = REQUIRED_ENV.filter(key => !process.env[key])
-if (missing.length) {
-  console.error(`[startup] Missing required environment variables: ${missing.join(', ')}`)
-  console.error('[startup] Copy .env.example to .env and fill in the values.')
-  process.exit(1)
-}
+// Get current directory
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
+// Load .env from the correct path BEFORE anything else
+dotenv.config({ path: path.join(__dirname, '.env') })
+
+// Log immediately to verify
+console.log('=== SERVER STARTUP ===')
+console.log('RAZORPAY_KEY_ID loaded:', !!process.env.RAZORPAY_KEY_ID)
+console.log('RAZORPAY_KEY_SECRET loaded:', !!process.env.RAZORPAY_KEY_SECRET)
+console.log('=====================')
+
+// Now import the rest
 import app from './src/app.js'
 import connectDB from './src/config/db.js'
 

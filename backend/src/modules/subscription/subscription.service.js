@@ -1,20 +1,71 @@
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+// Manually parse .env file
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const envPath = join(__dirname, '../../../.env')
+
+try {
+  const envContent = readFileSync(envPath, 'utf-8')
+  envContent.split('\n').forEach(line => {
+    const [key, ...valueParts] = line.split('=')
+    if (key && !key.startsWith('#') && valueParts.length) {
+      const value = valueParts.join('=')
+      if (!process.env[key]) {
+        process.env[key] = value.trim()
+      }
+    }
+  })
+  console.log('✅ Manually loaded .env file from:', envPath)
+  console.log('RAZORPAY_KEY_ID loaded:', !!process.env.RAZORPAY_KEY_ID)
+} catch (err) {
+  console.error('Failed to load .env file:', err.message)
+}
+
+// Now the rest of your imports
 import Razorpay from 'razorpay'
 import crypto from 'crypto'
 import Subscription from './subscription.model.js'
 import { PLANS } from '../../shared/constants/plans.js'
 import { ApiError } from '../../shared/utils/apiError.js'
 
-// Lazy init — created on first use so .env is already loaded by then
-let _razorpay = null
-const getRazorpay = () => {
-  if (!_razorpay) {
-    _razorpay = new Razorpay({
-      key_id:     process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    })
-  }
-  return _razorpay
+console.log('=== Subscription Service Loading ===')
+console.log('RAZORPAY_KEY_ID from process.env:', process.env.RAZORPAY_KEY_ID ? '✅ Found' : '❌ Missing')
+console.log('RAZORPAY_KEY_SECRET from process.env:', process.env.RAZORPAY_KEY_SECRET ? '✅ Found' : '❌ Missing')
+if (process.env.RAZORPAY_KEY_ID) {
+  console.log('RAZORPAY_KEY_ID value starts with:', process.env.RAZORPAY_KEY_ID.substring(0, 10))
 }
+console.log('====================================')
+
+// Initialize Razorpay
+let razorpayInstance = null
+
+const initRazorpay = () => {
+  const keyId = process.env.RAZORPAY_KEY_ID?.trim()
+  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim()
+  
+  if (!keyId || !keySecret) {
+    console.error('Razorpay credentials missing in initRazorpay()')
+    return null
+  }
+  
+  try {
+    razorpayInstance = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    })
+    console.log('✅ Razorpay initialized successfully')
+    return razorpayInstance
+  } catch (error) {
+    console.error('❌ Razorpay initialization failed:', error.message)
+    return null
+  }
+}
+
+// Initialize on module load
+initRazorpay()
 
 export const getMySubscriptionService = async (userId) => {
   let sub = await Subscription.findOne({ user: userId })
@@ -54,12 +105,9 @@ export const getUsageService = async (userId) => {
   return { plan: sub.plan, usage: summary, resetAt: sub.usageResetAt }
 }
 
-/**
- * Step 1 — Create a Razorpay Order (one-time payment, ₹999)
- * Only needs RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET
- * No plan ID, no webhook required
- */
 export const createOrderService = async (userId) => {
+  console.log('Creating order for user:', userId)
+  
   let sub = await Subscription.findOne({ user: userId })
   if (!sub) sub = await Subscription.create({ user: userId, plan: 'free', status: 'inactive' })
 
@@ -67,32 +115,51 @@ export const createOrderService = async (userId) => {
     throw new ApiError(400, 'You already have an active Pro subscription')
   }
 
-  // Create a one-time Razorpay order — ₹999 = 99900 paise
-  const order = await getRazorpay().orders.create({
-    amount:   99900,
-    currency: 'INR',
-    receipt:  `receipt_${userId}_${Date.now()}`,
-    notes:    { userId: userId.toString() },
-  })
+  // Check if Razorpay is initialized
+  if (!razorpayInstance) {
+    console.log('Razorpay not initialized, trying to re-initialize...')
+    initRazorpay()
+    if (!razorpayInstance) {
+      console.error('Razorpay instance is null. Key ID exists?', !!process.env.RAZORPAY_KEY_ID)
+      throw new ApiError(500, 'Payment system not configured. Please contact support.')
+    }
+  }
 
-  return {
-    orderId:  order.id,
-    amount:   order.amount,
-    currency: order.currency,
-    keyId:    process.env.RAZORPAY_KEY_ID,
+  try {
+    // Create a receipt within 40 character limit
+    const userIdStr = userId.toString()
+    const shortUserId = userIdStr.slice(-8)
+    const shortTimestamp = Date.now().toString().slice(-8)
+    const receipt = `rcpt_${shortUserId}_${shortTimestamp}`
+    
+    console.log('Creating order with receipt:', receipt)
+    
+    const order = await razorpayInstance.orders.create({
+      amount: 99900,
+      currency: 'INR',
+      receipt: receipt,
+      notes: { 
+        userId: userIdStr,
+        timestamp: Date.now()
+      },
+    })
+    
+    console.log('Order created successfully:', order.id)
+    
+    return {
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      keyId: process.env.RAZORPAY_KEY_ID,
+    }
+  } catch (error) {
+    console.error('Razorpay order creation error:', error.error?.description || error.message)
+    throw new ApiError(500, `Payment error: ${error.error?.description || error.message}`)
   }
 }
 
-/**
- * Step 2 — Verify payment signature on the backend
- * Called after Razorpay checkout succeeds on the frontend
- * Razorpay signs: orderId + "|" + paymentId with your key secret
- * If signature matches → upgrade user to Pro instantly
- * No webhook needed — verification is synchronous
- */
 export const verifyPaymentService = async (userId, { razorpayOrderId, razorpayPaymentId, razorpaySignature }) => {
-  // Verify signature
-  const body     = `${razorpayOrderId}|${razorpayPaymentId}`
+  const body = `${razorpayOrderId}|${razorpayPaymentId}`
   const expected = crypto
     .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
     .update(body)
@@ -102,31 +169,27 @@ export const verifyPaymentService = async (userId, { razorpayOrderId, razorpayPa
     throw new ApiError(400, 'Payment verification failed — invalid signature')
   }
 
-  // Signature valid — upgrade user to Pro for 30 days
-  const now      = new Date()
+  const now = new Date()
   const periodEnd = new Date(now)
   periodEnd.setDate(periodEnd.getDate() + 30)
 
   let sub = await Subscription.findOne({ user: userId })
   if (!sub) sub = await Subscription.create({ user: userId })
 
-  sub.plan               = 'pro'
-  sub.status             = 'active'
+  sub.plan = 'pro'
+  sub.status = 'active'
   sub.currentPeriodStart = now
-  sub.currentPeriodEnd   = periodEnd
-  sub.cancelAtPeriodEnd  = false
+  sub.currentPeriodEnd = periodEnd
+  sub.cancelAtPeriodEnd = false
   await sub.save()
 
   return {
-    plan:            sub.plan,
-    status:          sub.status,
+    plan: sub.plan,
+    status: sub.status,
     currentPeriodEnd: sub.currentPeriodEnd,
   }
 }
 
-/**
- * Downgrade to free — called manually or when period expires
- */
 export const cancelSubscriptionService = async (userId) => {
   const sub = await Subscription.findOne({ user: userId })
   if (!sub || sub.plan !== 'pro') throw new ApiError(400, 'No active Pro subscription found')
@@ -135,7 +198,7 @@ export const cancelSubscriptionService = async (userId) => {
   await sub.save()
 
   return {
-    message:          'Subscription will cancel at period end',
+    message: 'Subscription will cancel at period end',
     currentPeriodEnd: sub.currentPeriodEnd,
   }
 }

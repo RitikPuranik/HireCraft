@@ -14,22 +14,24 @@ export default function Dashboard() {
   const { data: resumes, isLoading: resumesLoading } = useQuery({
     queryKey: ['resumes'],
     queryFn: async () => {
-      const response = await resumeAPI.getAll();
-      // Handle different response structures
-      return response.data?.data?.resumes || response.data?.data || response.data || [];
+      const result = await resumeAPI.getAll();
+      console.log('Resumes result:', result); // Debug
+      return Array.isArray(result) ? result : [];
     },
   });
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: ['interview-sessions'],
     queryFn: async () => {
-      const response = await interviewAPI.getSessions();
-      return response.data?.data?.sessions || response.data?.data || response.data || [];
+      const result = await interviewAPI.getSessions();
+      console.log('Sessions result:', result); // Debug
+      return Array.isArray(result) ? result : [];
     },
   });
 
-  const resumeList = resumes?.resumes || resumes || [];
-  const sessionList = sessions?.sessions || sessions || [];
+  // Then use directly (no need for extra fallbacks)
+  const resumeList = resumes || [];
+  const sessionList = sessions || [];
 
   const avgScore = resumeList.length
     ? Math.round(resumeList.filter((r) => r.score).reduce((a, r) => a + (r.score || 0), 0) / resumeList.filter((r) => r.score).length) || 0

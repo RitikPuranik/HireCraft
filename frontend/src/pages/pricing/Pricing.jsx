@@ -9,7 +9,7 @@ import { PageLoader, Spinner } from '../../components/ui';
 const defaultPlans = [
   {
     id: 'free',
-    name: 'Starter',
+    name: 'Free',
     price: 0,
     currency: '₹',
     period: 'forever',
@@ -23,27 +23,15 @@ const defaultPlans = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 499,
+    price: 999,  // Your backend charges ₹999
     currency: '₹',
     period: 'month',
     icon: Zap,
     description: 'Best for active job seekers',
     features: ['Unlimited resume uploads', '10 interview sessions/mo', 'Full AI analysis', 'Keyword optimization', 'Priority support', 'Interview report PDF'],
-    cta: 'Get Pro',
+    cta: 'Upgrade to Pro',
     popular: true,
     color: 'border-sage-400',
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: 999,
-    currency: '₹',
-    period: 'month',
-    icon: Crown,
-    description: 'For serious career growth',
-    features: ['Everything in Pro', 'Unlimited interviews', 'Role-specific questions', 'LinkedIn profile review', 'Career coaching tips', 'Early access features'],
-    cta: 'Get Premium',
-    color: 'border-warm-300',
   },
 ];
 
@@ -62,17 +50,19 @@ export default function Pricing() {
   const handlePurchase = async (plan) => {
     if (!plan.price || plan.disabled) return;
     setLoadingPlan(plan.id);
+    
     try {
-      const res = await paymentAPI.createOrder(plan.id);
-      const order = res.data?.order || res.data;
-
+      // Create order - no planId needed
+      const res = await paymentAPI.createOrder();
+      const orderData = res.data?.data || res.data;
+      
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || order?.razorpayKeyId,
-        amount: order.amount,
-        currency: order.currency || 'INR',
-        name: 'ResumeAI',
-        description: `${plan.name} Plan`,
-        order_id: order.id,
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || orderData?.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'HireCraft',
+        description: `${plan.name} Plan - Pro Upgrade`,
+        order_id: orderData.orderId,
         prefill: {
           name: user?.name,
           email: user?.email,
@@ -81,13 +71,15 @@ export default function Pricing() {
         handler: async (response) => {
           try {
             await paymentAPI.verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              planId: plan.id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
             });
             toast.success(`🎉 ${plan.name} plan activated!`);
-          } catch {
+            // Refresh user data
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (err) {
+            console.error('Verification error:', err);
             toast.error('Payment verification failed. Please contact support.');
           }
         },
@@ -97,9 +89,11 @@ export default function Pricing() {
         toast.error('Razorpay not loaded. Please refresh and try again.');
         return;
       }
+      
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (err) {
+      console.error('Order creation error:', err.response?.data);
       toast.error(err.response?.data?.message || 'Failed to initiate payment');
     } finally {
       setLoadingPlan(null);
