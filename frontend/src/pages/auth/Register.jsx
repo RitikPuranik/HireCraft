@@ -29,7 +29,7 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await authAPI.register(data);
-      const { token, user } = res.data;
+      const { token, user } = res.data.data;
       login(user, token);
       toast.success(`Welcome, ${user.name}! 🎉`);
       navigate('/dashboard');

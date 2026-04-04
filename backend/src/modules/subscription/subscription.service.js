@@ -63,7 +63,7 @@ export const getUsageService = async (userId) => {
   return { plan: sub.plan, usage: summary, resetAt: sub.usageResetAt }
 }
 
-export const createOrderService = async (userId) => {
+export const createOrderService = async (userId, couponCode = null) => {
   let sub = await Subscription.findOne({ user: userId })
   if (!sub) sub = await Subscription.create({ user: userId, plan: 'free', status: 'inactive' })
   if (sub.plan === 'pro' && sub.status === 'active') {
@@ -73,23 +73,49 @@ export const createOrderService = async (userId) => {
   const rzp = getRazorpay()
   if (!rzp) throw new ApiError(500, 'Payment system not configured. Add RAZORPAY credentials to .env')
 
+  // Base price ₹999
+  const BASE_PRICE_PAISE = 99900
+  let finalAmount = BASE_PRICE_PAISE
+  let appliedCoupon = null
+  let discountPercent = 0
+
+  // Validate and apply coupon if provided
+  if (couponCode) {
+    const { validateCouponService } = await import('../coupon/coupon.service.js')
+    try {
+      const couponResult = await validateCouponService(couponCode, userId)
+      discountPercent = couponResult.discountPercent
+      finalAmount = Math.round(BASE_PRICE_PAISE * (1 - discountPercent / 100))
+      appliedCoupon = couponResult.code
+    } catch (err) {
+      throw new ApiError(400, err.message || 'Invalid coupon code')
+    }
+  }
+
   try {
     const shortUserId = userId.toString().slice(-8)
     const shortTs = Date.now().toString().slice(-8)
     const receipt = `rcpt_${shortUserId}_${shortTs}`
 
     const order = await rzp.orders.create({
-      amount: 99900, // ₹999 in paise
+      amount: finalAmount,
       currency: 'INR',
       receipt,
-      notes: { userId: userId.toString() },
+      notes: {
+        userId:         userId.toString(),
+        couponCode:     appliedCoupon || '',
+        discountPercent: discountPercent.toString(),
+      },
     })
 
     return {
-      orderId:  order.id,
-      amount:   order.amount,
-      currency: order.currency,
-      keyId:    process.env.RAZORPAY_KEY_ID,
+      orderId:         order.id,
+      amount:          order.amount,
+      currency:        order.currency,
+      keyId:           process.env.RAZORPAY_KEY_ID,
+      originalAmount:  BASE_PRICE_PAISE,
+      discountPercent,
+      appliedCoupon,
     }
   } catch (error) {
     throw new ApiError(500, `Payment error: ${error.error?.description || error.message}`)
@@ -120,6 +146,9 @@ export const verifyPaymentService = async (userId, { razorpayOrderId, razorpayPa
   sub.cancelAtPeriodEnd = false
   await sub.save()
 
+  // Mark coupon as used if one was applied (stored in Razorpay order notes)
+  // We retrieve coupon from the order notes via Razorpay API or pass it explicitly
+  // Here we handle it via the couponCode field if passed in body
   return { plan: sub.plan, status: sub.status, currentPeriodEnd: sub.currentPeriodEnd }
 }
 

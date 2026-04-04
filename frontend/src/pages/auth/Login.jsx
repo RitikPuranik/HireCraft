@@ -28,7 +28,7 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await authAPI.login(data);
-      const { token, user } = res.data;
+      const { token, user } = res.data.data;
       login(user, token);
       toast.success(`Welcome back, ${user.name}!`);
       navigate('/dashboard');

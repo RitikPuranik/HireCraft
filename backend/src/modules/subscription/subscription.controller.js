@@ -25,12 +25,21 @@ export const getUsage = asyncHandler(async (req, res) => {
 })
 
 export const createOrder = asyncHandler(async (req, res) => {
-  const result = await createOrderService(req.user._id)
+  const { couponCode } = req.body
+  const result = await createOrderService(req.user._id, couponCode || null)
   res.status(200).json(new ApiResponse(200, result, 'Order created'))
 })
 
 export const verifyPayment = asyncHandler(async (req, res) => {
-  const result = await verifyPaymentService(req.user._id, req.body)
+  const { razorpayOrderId, razorpayPaymentId, razorpaySignature, couponCode } = req.body
+  const result = await verifyPaymentService(req.user._id, { razorpayOrderId, razorpayPaymentId, razorpaySignature })
+
+  // Mark coupon as used after successful payment
+  if (couponCode) {
+    const { applyCouponService } = await import('../coupon/coupon.service.js')
+    await applyCouponService(couponCode, req.user._id)
+  }
+
   res.status(200).json(new ApiResponse(200, result, 'Payment verified — Pro activated'))
 })
 
