@@ -1,7 +1,6 @@
 import client from './client';
 
 export const interviewAPI = {
-  // Setup + auto-start a session
   startSession: async (data) => {
     const payload = {
       role:      data.jobRole,
@@ -11,7 +10,6 @@ export const interviewAPI = {
     return client.post('/interviews/setup', payload);
   },
 
-  // Get all sessions (returns array directly)
   getSessions: async () => {
     const res = await client.get('/interviews/history');
     const data = res.data?.data;
@@ -20,10 +18,13 @@ export const interviewAPI = {
     return [];
   },
 
-  getSession:   (id)           => client.get(`/interviews/${id}`),
-  submitAnswer: (id, data)     => client.patch(`/interviews/${id}/answer`, data),
-  endSession:   (id)           => client.patch(`/interviews/${id}/complete`),
-  getReport:    (id)           => client.get(`/interviews/${id}/report`),
-  evaluate:     (interviewId)  => client.post(`/evaluation/evaluate/${interviewId}`),
-  getEvaluation:(interviewId)  => client.get(`/evaluation/${interviewId}`),
+  getSession:   (id)       => client.get(`/interviews/${id}`),
+  submitAnswer: (id, data) => client.patch(`/interviews/${id}/answer`, data),
+  endSession:   (id)       => client.patch(`/interviews/${id}/complete`),
+  getReport:    (id)       => client.get(`/interviews/${id}/report`),
+  evaluate:     (id)       => client.post(`/evaluation/evaluate/${id}`),
+  getEvaluation:(id)       => client.get(`/evaluation/${id}`),
+
+  // AI interviewer reaction: 'silence' | 'unclear' | 'good'
+  aiResponse: (data) => client.post('/interviews/ai-response', data),
 };

@@ -40,3 +40,13 @@ export const getInterviewReport = asyncHandler(async (req, res) => {
   const report = await getInterviewReportService(req.params.id, req.user._id)
   res.status(200).json(new ApiResponse(200, report, 'Report fetched'))
 })
+import { generateAIResponse } from './interview.ai.js'
+
+export const aiInterviewerResponse = asyncHandler(async (req, res) => {
+  const { question, answer, case: caseType, repeatCount, role, roundType } = req.body
+  if (!question || !caseType) {
+    return res.status(400).json(new ApiResponse(400, null, 'question and case are required'))
+  }
+  const text = await generateAIResponse({ question, answer, case: caseType, repeatCount, role, roundType })
+  res.status(200).json(new ApiResponse(200, { text }, 'AI response generated'))
+})
