@@ -15,6 +15,7 @@ export const resumeAPI = {
     return [];
   },
 
+  analyze:    (id)       => client.post('/ats/analyze', { resumeId: id }),
   getOne:     (id)       => client.get(`/resumes/${id}`),
   create:     (data)     => client.post('/resumes', data),
   update:     (id, data) => client.put(`/resumes/${id}`, data),

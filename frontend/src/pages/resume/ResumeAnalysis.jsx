@@ -13,10 +13,20 @@ export default function ResumeAnalysis() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['resume', id],
-    queryFn: () => resumeAPI.getOne(id).then((r) => r.data),
+    queryFn: () => resumeAPI.getOne(id).then((r) => r.data?.data || r.data),
   });
 
   const resume = data?.resume || data;
+  // Normalise: the backend stores ATS results as atsScore / atsAnalysis on the resume document.
+  // Map them to a single `analysis` shape so the JSX below works without changes.
+  const analysis = resume?.atsAnalysis != null && resume?.atsScore != null ? {
+    score:       resume.atsScore,
+    summary:     resume.atsAnalysis.verdict,
+    strengths:   [],
+    improvements: (resume.atsAnalysis.missingSections || []).map(s => `Missing section: ${s}`),
+    keywords:    resume.atsAnalysis.matchedKeywords || [],
+    suggestions: resume.atsAnalysis.suggestions || [],
+  } : resume?.analysis ?? null;
 
   const analyzeMutation = useMutation({
     mutationFn: () => resumeAPI.analyze(id),
@@ -26,14 +36,13 @@ export default function ResumeAnalysis() {
       qc.invalidateQueries(['resume', id]);
       qc.invalidateQueries(['resumes']);
     },
+
     onError: (err) => toast.error(err.response?.data?.message || 'Analysis failed'),
     onSettled: () => setAnalyzing(false),
   });
 
   if (isLoading) return <PageLoader />;
   if (!resume) return <div className="text-center text-sage-400 py-16">Resume not found</div>;
-
-  const analysis = resume.analysis;
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-up">
@@ -81,16 +90,16 @@ export default function ResumeAnalysis() {
           {/* Score Card */}
           <div className="card p-6">
             <div className="flex items-center gap-6">
-              <ScoreRing score={analysis.score || resume.score || 0} size={100} />
+              <ScoreRing score={analysis.score ?? resume.atsScore ?? 0} size={100} />
               <div className="flex-1">
                 <h2 className="font-display text-xl font-semibold text-charcoal-800 mb-1">ATS Score</h2>
                 <p className="text-sm text-sage-400 mb-3">
-                  {analysis.score >= 70 ? 'Strong resume — likely to pass ATS filters' : analysis.score >= 40 ? 'Moderate — needs some improvements' : 'Needs significant improvement'}
+                  {(analysis.score ?? 0) >= 70 ? 'Strong resume — likely to pass ATS filters' : (analysis.score ?? 0) >= 40 ? 'Moderate — needs some improvements' : 'Needs significant improvement'}
                 </p>
                 <div className="flex gap-3 flex-wrap">
-                  {analysis.score >= 70 ? (
+                  {(analysis.score ?? 0) >= 70 ? (
                     <Badge variant="success">High Impact</Badge>
-                  ) : analysis.score >= 40 ? (
+                  ) : (analysis.score ?? 0) >= 40 ? (
                     <Badge variant="warning">Moderate</Badge>
                   ) : (
                     <Badge variant="danger">Needs Work</Badge>

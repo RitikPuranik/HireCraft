@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
+import { useQueryClient } from '@tanstack/react-query';
 import { Upload, FileText, X, CheckCircle, Sparkles, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { resumeAPI } from '../../api/resume';
@@ -10,6 +11,7 @@ export default function ResumeUpload() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const onDrop = useCallback((accepted) => {
     if (accepted[0]) setFile(accepted[0]);
@@ -36,6 +38,7 @@ export default function ResumeUpload() {
       const res = await resumeAPI.upload(formData);
       const resume = res.data?.data?.resume || res.data?.data || res.data;
       const id = resume?._id;
+      await qc.invalidateQueries(['resumes']);
       toast.success('Resume uploaded!');
       navigate(id ? `/resumes/${id}` : '/resumes');
     } catch (err) {

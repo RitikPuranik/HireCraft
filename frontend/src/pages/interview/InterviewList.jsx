@@ -86,10 +86,10 @@ const onStart = async (data) => {
                 <Mic2 size={18} className="text-warm-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-charcoal-800 text-sm">{s.jobRole || s.role || 'Mock Interview'}</h3>
+                <h3 className="font-medium text-charcoal-800 text-sm">{s.role || s.jobRole || 'Mock Interview'}</h3>
                 <div className="flex items-center gap-3 mt-1">
                   <p className="text-xs text-sage-400">{new Date(s.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                  {s.questionsCount && <span className="text-xs text-sage-400">{s.questionsCount} questions</span>}
+                  {s.questionsCount != null && <span className="text-xs text-sage-400">{s.questionsCount} questions</span>}
                 </div>
               </div>
               <Badge variant={s.status === 'completed' ? 'success' : 'warning'}>

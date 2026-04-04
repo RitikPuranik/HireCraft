@@ -21,7 +21,7 @@ export default function InterviewSession() {
     queryFn: () => interviewAPI.getSession(id).then((r) => r.data),
   });
 
-  const session = data?.session || data;
+  const session = data?.data || data?.session || data;
   const questions = session?.questions || [];
   const totalQ = questions.length;
   const progress = totalQ > 0 ? Math.round(((currentQ) / totalQ) * 100) : 0;
@@ -88,7 +88,7 @@ export default function InterviewSession() {
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1.5">
-            <h1 className="font-medium text-charcoal-800 text-sm">{session.jobRole || 'Mock Interview'}</h1>
+            <h1 className="font-medium text-charcoal-800 text-sm">{session.role || session.jobRole || 'Mock Interview'}</h1>
             <span className="text-xs text-sage-400 font-medium">{currentQ}/{totalQ} answered</span>
           </div>
           <div className="w-full bg-cream-200 rounded-full h-1.5">
