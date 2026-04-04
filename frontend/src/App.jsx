@@ -11,6 +11,7 @@ import ResumeList from './pages/resume/ResumeList';
 import ResumeUpload from './pages/resume/ResumeUpload';
 import ResumeAnalysis from './pages/resume/ResumeAnalysis';
 import ResumeBuilder from './pages/resume/ResumeBuilder';
+import ResumeTemplates from './pages/resume/ResumeTemplates';
 import InterviewList from './pages/interview/InterviewList';
 import InterviewSession from './pages/interview/InterviewSession';
 import InterviewReport from './pages/interview/InterviewReport';
@@ -48,7 +49,9 @@ export default function App() {
             <Route path="/dashboard"              element={<Dashboard />} />
             <Route path="/resumes"                element={<ResumeList />} />
             <Route path="/resumes/upload"         element={<ResumeUpload />} />
-            <Route path="/resumes/builder"        element={<ResumeBuilder />} />
+            <Route path="/resumes/templates"       element={<ResumeTemplates />} />
+            <Route path="/resumes/build"           element={<ResumeBuilder />} />
+            <Route path="/resumes/builder"         element={<ResumeBuilder />} />
             <Route path="/resumes/:id"            element={<ResumeAnalysis />} />
             <Route path="/interview"              element={<InterviewList />} />
             <Route path="/interview/session/:id"  element={<InterviewSession />} />

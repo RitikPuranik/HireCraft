@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, ChevronDown, ChevronUp, Save, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { resumeAPI } from '../../api/resume';
@@ -273,4 +273,4 @@ export default function ResumeBuilder() {
       </button>
     </div>
   );
-}   
+}
