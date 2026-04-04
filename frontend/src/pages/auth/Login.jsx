@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, ArrowRight, AlertCircle } from 'lucide-react'; // Added AlertCircle
 import { authAPI } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { Spinner } from '../../components/ui';
@@ -20,7 +20,8 @@ export default function Login() {
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  // Added setError and root to formState
+  const { register, handleSubmit, setError, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 
@@ -33,7 +34,19 @@ export default function Login() {
       toast.success(`Welcome back, ${user.name}!`);
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      const errorMessage = err.response?.data?.message || 'Something went wrong';
+      
+      // 1. Handle specific field errors from backend
+      if (errorMessage.toLowerCase().includes('password')) {
+        setError('password', { type: 'manual', message: errorMessage });
+      } else if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('user')) {
+        setError('email', { type: 'manual', message: errorMessage });
+      } else {
+        // 2. Fallback for general errors (e.g., "Too many attempts")
+        setError('root', { type: 'manual', message: errorMessage });
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -41,7 +54,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
-      {/* Left Panel */}
+      {/* Left Panel - Unchanged */}
       <div className="hidden lg:flex w-1/2 bg-sage-500 flex-col justify-between p-12">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
@@ -73,28 +86,28 @@ export default function Login() {
       {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-xl bg-sage-500 flex items-center justify-center">
-              <Sparkles size={16} className="text-white" />
-            </div>
-            <span className="font-display text-xl font-semibold text-charcoal-800">ResumeAI</span>
-          </div>
-
           <h2 className="font-display text-4xl font-semibold text-charcoal-800 mb-2">Welcome back</h2>
           <p className="text-sage-400 mb-8 text-sm">Sign in to continue your career journey</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Global Error Alert */}
+            {errors.root && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm animate-shake">
+                <AlertCircle size={18} />
+                {errors.root.message}
+              </div>
+            )}
+
             <div>
               <label className="label">Email address</label>
               <input
                 {...register('email')}
                 type="email"
                 placeholder="you@example.com"
-                className="input-field"
+                className={`input-field ${errors.email ? 'border-red-400 focus:ring-red-100' : ''}`}
                 autoComplete="email"
               />
-              {errors.email && <p className="error-text">{errors.email.message}</p>}
+              {errors.email && <p className="error-text text-red-500 mt-1 text-xs">{errors.email.message}</p>}
             </div>
 
             <div>
@@ -104,7 +117,7 @@ export default function Login() {
                   {...register('password')}
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="input-field pr-11"
+                  className={`input-field pr-11 ${errors.password ? 'border-red-400 focus:ring-red-100' : ''}`}
                   autoComplete="current-password"
                 />
                 <button
@@ -115,7 +128,7 @@ export default function Login() {
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password && <p className="error-text">{errors.password.message}</p>}
+              {errors.password && <p className="error-text text-red-500 mt-1 text-xs">{errors.password.message}</p>}
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full py-3.5">

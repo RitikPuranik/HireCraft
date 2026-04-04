@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { User, Lock, Save, Shield, Phone, MapPin } from 'lucide-react';
+import { User, Lock, Save, Shield, Phone, MapPin,Crown } from 'lucide-react';
 import { authAPI } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { Spinner } from '../../components/ui';
@@ -70,21 +70,37 @@ export default function Profile() {
       </div>
 
       {/* Avatar */}
-      <div className="card p-5 mb-5 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-sage-100 flex items-center justify-center flex-shrink-0">
-          <span className="font-display text-2xl font-semibold text-sage-600">
-            {user?.name?.[0]?.toUpperCase() || 'U'}
+     {/* Avatar Section */}
+<div className="card p-5 mb-5 flex items-center gap-4">
+  <div className="w-16 h-16 rounded-2xl bg-sage-100 flex items-center justify-center flex-shrink-0">
+    <span className="font-display text-2xl font-semibold text-sage-600">
+      {user?.name?.[0]?.toUpperCase() || 'U'}
+    </span>
+  </div>
+  <div>
+    <h2 className="font-semibold text-charcoal-800">{user?.name}</h2>
+    <p className="text-sm text-sage-400">{user?.email}</p>
+    
+    <div className="flex items-center gap-2 mt-1">
+      {/* Logic: If plan is not 'free', show Crown, else show Shield */}
+      {user?.plan?.toLowerCase() !== 'free' ? (
+        <>
+          <Crown size={14} className="text-amber-500 fill-amber-500" />
+          <span className="text-xs font-bold text-amber-600 capitalize">
+            {user?.plan} Plan
           </span>
-        </div>
-        <div>
-          <h2 className="font-semibold text-charcoal-800">{user?.name}</h2>
-          <p className="text-sm text-sage-400">{user?.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Shield size={12} className="text-sage-500" />
-            <span className="text-xs text-sage-500 capitalize">{user?.plan || 'Free'} plan</span>
-          </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          <Shield size={14} className="text-sage-500" />
+          <span className="text-xs text-sage-500 capitalize">
+            {user?.plan || 'Free'} Plan
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+</div>
 
       {/* Profile Form */}
       <div className="card p-6 mb-5">
